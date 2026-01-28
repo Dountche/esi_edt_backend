@@ -28,6 +28,12 @@ const creneauRoutes = require('./creneaux');
 const etudiantConsultationRoutes = require('./etudiant-consultation');
 const professeurConsultationRoutes = require('./professeur-consultation');
 const exportRoutes = require('./exports');
+const domaineRoutes = require('./domaines');
+const dfrRoutes = require('./dfrs');
+const indisponibiliteRoutes = require('./indisponibilites');
+const notificationRoutes = require('./notifications');
+const dashboardRoutes = require('./dashboard');
+
 
 // === Déclaration des routes ===
 app.use('/api/auth', authRoutes);
@@ -47,15 +53,20 @@ app.use('/api/creneaux', creneauRoutes);
 app.use('/api/etudiants/consultation', etudiantConsultationRoutes);
 app.use('/api/professeurs/consultation', professeurConsultationRoutes);
 app.use('/api/exports', exportRoutes);
+app.use('/api/domaines', domaineRoutes);
+app.use('/api/dfrs', dfrRoutes);
+app.use('/api/indisponibilites', indisponibiliteRoutes);
+app.use('/api/notifications', notificationRoutes);
+app.use('/api/dashboard', dashboardRoutes);
 
 // Route de test
 app.get('/', (req, res) => {
-  res.json({ 
+  res.json({
     success: true,
     message: 'Bienvenue sur l\'API de gestion des emplois du temps - ESI',
     version: '1.0.0',
     status: 'En développement',
-    devs : 'J.K; K.idt & Lacoste le caîman argenté'
+    devs: 'J.K; K.idt & Lacoste le caîman argenté'
   });
 });
 

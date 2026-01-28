@@ -9,14 +9,17 @@ const timeToMinutes = (time) => {
 };
 
 // Créneaux autorisés
+// Créneaux autorisés
 const CRENEAUX_AUTORISES = [
-  // Matin
+  // Matin Standard
   { debut: '07:30', fin: '11:45' },
+  // Matin EPS/Divisé
   { debut: '07:30', fin: '09:30' },
   { debut: '09:45', fin: '11:45' },
 
-  // Après-midi
+  // Après-midi Standard
   { debut: '14:00', fin: '18:15' },
+  // Après-midi EPS/Divisé
   { debut: '14:00', fin: '16:00' },
   { debut: '16:15', fin: '18:15' }
 ];

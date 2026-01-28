@@ -11,7 +11,11 @@ const createClasse = async (req, res) => {
     annee_scolaire: Joi.string().pattern(/^\d{4}-\d{4}$/).required()
       .messages({
         'string.pattern.base': 'L\'année scolaire doit être au format YYYY-YYYY (ex: 2024-2025)'
-      })
+      }),
+    jour_eps: Joi.string().valid('Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi').optional().allow(null),
+    heure_debut_eps: Joi.string().pattern(/^([01]\d|2[0-3]):([0-5]\d)(:00)?$/).optional().allow(null),
+    heure_fin_eps: Joi.string().pattern(/^([01]\d|2[0-3]):([0-5]\d)(:00)?$/).optional().allow(null),
+    matiere_eps_id: Joi.number().integer().optional().allow(null)
   });
 
   const { error, value } = schema.validate(req.body);
@@ -23,7 +27,10 @@ const createClasse = async (req, res) => {
   }
 
   try {
-    const { nom, specialite_id, salle_principale_id, annee_scolaire } = value;
+    const {
+      nom, specialite_id, salle_principale_id, annee_scolaire,
+      jour_eps, heure_debut_eps, heure_fin_eps, matiere_eps_id
+    } = value;
     const rup_id = value.rup_id || req.user.id; // Par défaut, le RUP connecté
 
     // Vérifier que la spécialité existe
@@ -80,7 +87,12 @@ const createClasse = async (req, res) => {
       specialite_id,
       salle_principale_id,
       rup_id,
-      annee_scolaire
+      rup_id,
+      annee_scolaire,
+      jour_eps,
+      heure_debut_eps,
+      heure_fin_eps,
+      matiere_eps_id
     });
 
     // Récupérer avec les relations
@@ -95,8 +107,8 @@ const createClasse = async (req, res) => {
           ]
         },
         {
-          model : Salle,
-          as:'salle_principale',
+          model: Salle,
+          as: 'salle_principale',
           attributes: ['id', 'nom']
         },
         {
@@ -154,9 +166,9 @@ const getAllClasses = async (req, res) => {
         },
         {
           model: Salle,
-           as: 'salle_principale',
-           attributes: ['id', 'nom']
-          },
+          as: 'salle_principale',
+          attributes: ['id', 'nom']
+        },
         {
           model: User,
           as: 'rup',
@@ -282,7 +294,11 @@ const updateClasse = async (req, res) => {
     specialite_id: Joi.number().integer().optional(),
     salle_principale_id: Joi.number().integer().optional(),
     rup_id: Joi.number().integer().optional(),
-    annee_scolaire: Joi.string().pattern(/^\d{4}-\d{4}$/).optional()
+    annee_scolaire: Joi.string().pattern(/^\d{4}-\d{4}$/).optional(),
+    jour_eps: Joi.string().valid('Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi').optional().allow(null),
+    heure_debut_eps: Joi.string().pattern(/^([01]\d|2[0-3]):([0-5]\d)(:00)?$/).optional().allow(null),
+    heure_fin_eps: Joi.string().pattern(/^([01]\d|2[0-3]):([0-5]\d)(:00)?$/).optional().allow(null),
+    matiere_eps_id: Joi.number().integer().optional().allow(null)
   });
 
   const { error, value } = schema.validate(req.body);
@@ -295,7 +311,6 @@ const updateClasse = async (req, res) => {
 
   try {
     const { id } = req.params;
-    const { nom, specialite_id, salle_principale_id, rup_id, annee_scolaire } = value;
 
     const classe = await Classe.findByPk(id);
     if (!classe) {
@@ -349,7 +364,24 @@ const updateClasse = async (req, res) => {
       }
     }
 
-    await classe.update({ nom, specialite_id, salle_principale_id, rup_id, annee_scolaire });
+    const {
+      nom, specialite_id, salle_principale_id, rup_id, annee_scolaire,
+      jour_eps, heure_debut_eps, heure_fin_eps, matiere_eps_id
+    } = value;
+    await classe.update({
+      nom, specialite_id, salle_principale_id, rup_id, annee_scolaire,
+      jour_eps, heure_debut_eps, heure_fin_eps, matiere_eps_id
+    });
+
+    // Si la config EPS a changé, synchroniser les emplois du temps existants
+    if (jour_eps || heure_debut_eps || heure_fin_eps || matiere_eps_id) {
+      const { syncEpsCreneaux } = require('../services/epsService');
+      const { EmploiTemps } = require('../models');
+      const edts = await EmploiTemps.findAll({ where: { classe_id: id, statut: 'brouillon' } });
+      for (const edt of edts) {
+        await syncEpsCreneaux(edt.id);
+      }
+    }
 
     // Récupérer avec les relations
     const classeComplete = await Classe.findByPk(id, {

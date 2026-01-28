@@ -5,7 +5,8 @@ const createUE = async (req, res) => {
   const schema = Joi.object({
     code: Joi.string().min(2).max(20).required(),
     nom: Joi.string().min(2).max(200).required(),
-    classe_id: Joi.number().integer().required()
+    classe_id: Joi.number().integer().required(),
+    domaine_id: Joi.number().integer().optional().allow(null)
   });
 
   const { error, value } = schema.validate(req.body);
@@ -17,7 +18,7 @@ const createUE = async (req, res) => {
   }
 
   try {
-    const { code, nom, classe_id } = value;
+    const { code, nom, classe_id, domaine_id } = value;
 
     // Vérifier que la classe existe
     const classe = await Classe.findByPk(classe_id);
@@ -52,6 +53,7 @@ const createUE = async (req, res) => {
       code,
       nom,
       classe_id,
+      domaine_id,
       coefficient_total: 0,
       volume_horaire_total: 0
     });
@@ -136,6 +138,11 @@ const getAllUEs = async (req, res) => {
           model: Matiere,
           as: 'matieres',
           attributes: ['id', 'nom', 'code', 'coefficient', 'volume_horaire']
+        },
+        {
+          model: require('../models').Domaine,
+          as: 'domaine',
+          attributes: ['id', 'nom']
         }
       ],
       order: [['code', 'ASC']]
@@ -234,7 +241,8 @@ const getUEById = async (req, res) => {
 const updateUE = async (req, res) => {
   const schema = Joi.object({
     code: Joi.string().min(2).max(20).optional(),
-    nom: Joi.string().min(2).max(200).optional()
+    nom: Joi.string().min(2).max(200).optional(),
+    domaine_id: Joi.number().integer().optional().allow(null)
   });
 
   const { error, value } = schema.validate(req.body);
@@ -247,7 +255,7 @@ const updateUE = async (req, res) => {
 
   try {
     const { id } = req.params;
-    const { code, nom } = value;
+    const { code, nom, domaine_id } = value;
 
     const ue = await UniteEnseignement.findByPk(id, {
       include: [
@@ -288,7 +296,7 @@ const updateUE = async (req, res) => {
       }
     }
 
-    await ue.update({ code, nom });
+    await ue.update({ code, nom, domaine_id });
 
     // Récupérer avec les relations
     const ueComplete = await UniteEnseignement.findByPk(id, {

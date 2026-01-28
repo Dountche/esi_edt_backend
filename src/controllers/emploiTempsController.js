@@ -66,6 +66,10 @@ const createEmploiTemps = async (req, res) => {
       statut: statut || 'brouillon'
     });
 
+    // Auto-remplissage des créneaux EPS si configurés
+    const { syncEpsCreneaux } = require('../services/epsService');
+    await syncEpsCreneaux(emploiTemps.id);
+
     // Récupérer avec les relations
     const emploiTempsComplet = await EmploiTemps.findByPk(emploiTemps.id, {
       include: [
@@ -674,7 +678,7 @@ const dupliquerEmploiTemps = async (req, res) => {
     return res.status(201).json({
       success: true,
       message: 'Emploi du temps dupliqué avec succès',
-      data: { 
+      data: {
         emploi_temps: edtComplet,
         nombre_creneaux_dupliques: creneauxACreer.length
       }

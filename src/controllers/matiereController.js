@@ -10,7 +10,8 @@ const createMatiere = async (req, res) => {
     ue_id: Joi.number().integer().required(),
     coefficient: Joi.number().min(0).required(),
     volume_horaire: Joi.number().integer().min(0).required(),
-    periode: Joi.string().max(100).optional()
+    periode: Joi.string().max(100).optional(),
+    dfr_id: Joi.number().integer().optional().allow(null)
   });
 
   const { error, value } = schema.validate(req.body);
@@ -25,7 +26,7 @@ const createMatiere = async (req, res) => {
   const transaction = await sequelize.transaction();
 
   try {
-    const { nom, code, ue_id, coefficient, volume_horaire, periode } = value;
+    const { nom, code, ue_id, coefficient, volume_horaire, periode, dfr_id } = value;
 
     // Vérifier que l'UE existe
     const ue = await UniteEnseignement.findByPk(ue_id, {
@@ -78,7 +79,8 @@ const createMatiere = async (req, res) => {
         ue_id,
         coefficient,
         volume_horaire,
-        periode
+        periode,
+        dfr_id
       },
       { transaction }
     );
@@ -208,6 +210,11 @@ const getAllMatieres = async (req, res) => {
               attributes: ['id', 'nom']
             }
           ]
+        },
+        {
+          model: require('../models').DFR,
+          as: 'dfr',
+          attributes: ['id', 'nom', 'couleur']
         }
       ],
       order: [['code', 'ASC']]
@@ -293,7 +300,8 @@ const updateMatiere = async (req, res) => {
     code: Joi.string().min(2).max(20).optional(),
     coefficient: Joi.number().min(0).optional(),
     volume_horaire: Joi.number().integer().min(0).optional(),
-    periode: Joi.string().max(100).optional()
+    periode: Joi.string().max(100).optional(),
+    dfr_id: Joi.number().integer().optional().allow(null)
   });
 
   const { error, value } = schema.validate(req.body);
@@ -308,7 +316,7 @@ const updateMatiere = async (req, res) => {
 
   try {
     const { id } = req.params;
-    const { nom, code, coefficient, volume_horaire, periode } = value;
+    const { nom, code, coefficient, volume_horaire, periode, dfr_id } = value;
 
     const matiere = await Matiere.findByPk(id, {
       include: [
@@ -362,7 +370,7 @@ const updateMatiere = async (req, res) => {
 
     // Mettre à jour la matière
     await matiere.update(
-      { nom, code, coefficient, volume_horaire, periode },
+      { nom, code, coefficient, volume_horaire, periode, dfr_id },
       { transaction }
     );
 

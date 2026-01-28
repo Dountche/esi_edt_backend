@@ -22,6 +22,12 @@ module.exports = (sequelize, DataTypes) => {
         foreignKey: 'matiere_id',
         as: 'creneaux'
       });
+
+      // Une matière appartient à un DFR
+      Matiere.belongsTo(models.DFR, {
+        foreignKey: 'dfr_id',
+        as: 'dfr'
+      });
     }
   }
 
@@ -70,6 +76,14 @@ module.exports = (sequelize, DataTypes) => {
     periode: {
       type: DataTypes.STRING(100),
       allowNull: true
+    },
+    dfr_id: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      references: {
+        model: 'dfrs',
+        key: 'id'
+      }
     }
   }, {
     sequelize,

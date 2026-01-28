@@ -16,6 +16,12 @@ module.exports = (sequelize, DataTypes) => {
         foreignKey: 'ue_id',
         as: 'matieres'
       });
+
+      // Une UE appartient à un Domaine
+      UniteEnseignement.belongsTo(models.Domaine, {
+        foreignKey: 'domaine_id',
+        as: 'domaine'
+      });
     }
   }
 
@@ -56,6 +62,14 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.INTEGER,
       allowNull: false,
       defaultValue: 0
+    },
+    domaine_id: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      references: {
+        model: 'domaines',
+        key: 'id'
+      }
     }
   }, {
     sequelize,

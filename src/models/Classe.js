@@ -92,6 +92,26 @@ module.exports = (sequelize, DataTypes) => {
       validate: {
         notEmpty: true
       }
+    },
+    jour_eps: {
+      type: DataTypes.ENUM('Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'),
+      allowNull: true
+    },
+    heure_debut_eps: {
+      type: DataTypes.TIME,
+      allowNull: true
+    },
+    heure_fin_eps: {
+      type: DataTypes.TIME,
+      allowNull: true
+    },
+    matiere_eps_id: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      references: {
+        model: 'matieres',
+        key: 'id'
+      }
     }
   }, {
     sequelize,

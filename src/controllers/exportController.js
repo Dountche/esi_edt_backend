@@ -1,5 +1,6 @@
-const { genererExcelEmploiTemps, genererExcelMaquette } = require('../services/exportService');
-const { EmploiTemps, Classe } = require('../models');
+const { genererExcelEmploiTemps, genererExcelMaquette, genererExcelProfesseur, genererExcelProfesseursBatch } = require('../services/exportService');
+const { genererPDFTable, genererPDFTableBatch } = require('../services/pdfService');
+const { EmploiTemps, Classe, Professeur, Attribution, User } = require('../models');
 
 const exporterEmploiTempsExcel = async (req, res) => {
   try {
@@ -24,26 +25,26 @@ const exporterEmploiTempsExcel = async (req, res) => {
     }
 
     // Vérifier les permissions
-    // if (req.user.role === 'RUP' && emploiTemps.classe.rup_id !== req.user.id) {
-    //   return res.status(403).json({
-    //     success: false,
-    //     message: 'Accès refusé.'
-    //   });
-    // }
+    if (req.user.role === 'RUP' && emploiTemps.classe.rup_id !== req.user.id) {
+      return res.status(403).json({
+        success: false,
+        message: 'Accès refusé.'
+      });
+    }
 
-    // if (req.user.role === 'ETUDIANT') {
-    //   const { Etudiant } = require('../models');
-    //   const etudiant = await Etudiant.findOne({
-    //     where: { user_id: req.user.id }
-    //   });
+    if (req.user.role === 'ETUDIANT') {
+      const { Etudiant } = require('../models');
+      const etudiant = await Etudiant.findOne({
+        where: { user_id: req.user.id }
+      });
 
-    //   if (!etudiant || etudiant.classe_id !== emploiTemps.classe_id) {
-    //     return res.status(403).json({
-    //       success: false,
-    //       message: 'Accès refusé.'
-    //     });
-    //   }
-    // }
+      if (!etudiant || etudiant.classe_id !== emploiTemps.classe_id) {
+        return res.status(403).json({
+          success: false,
+          message: 'Accès refusé.'
+        });
+      }
+    }
 
     // Générer le fichier Excel
     const workbook = await genererExcelEmploiTemps(id);
@@ -88,26 +89,26 @@ const exporterMaquetteExcel = async (req, res) => {
     }
 
     // Vérifier les permissions
-    // if (req.user.role === 'RUP' && classe.rup_id !== req.user.id) {
-    //   return res.status(403).json({
-    //     success: false,
-    //     message: 'Accès refusé.'
-    //   });
-    // }
+    if (req.user.role === 'RUP' && classe.rup_id !== req.user.id) {
+      return res.status(403).json({
+        success: false,
+        message: 'Accès refusé.'
+      });
+    }
 
-    // if (req.user.role === 'ETUDIANT') {
-    //   const { Etudiant } = require('../models');
-    //   const etudiant = await Etudiant.findOne({
-    //     where: { user_id: req.user.id }
-    //   });
+    if (req.user.role === 'ETUDIANT') {
+      const { Etudiant } = require('../models');
+      const etudiant = await Etudiant.findOne({
+        where: { user_id: req.user.id }
+      });
 
-    //   if (!etudiant || etudiant.classe_id !== parseInt(classe_id)) {
-    //     return res.status(403).json({
-    //       success: false,
-    //       message: 'Accès refusé.'
-    //     });
-    //   }
-    // }
+      if (!etudiant || etudiant.classe_id !== parseInt(classe_id)) {
+        return res.status(403).json({
+          success: false,
+          message: 'Accès refusé.'
+        });
+      }
+    }
 
     // Générer le fichier Excel
     const workbook = await genererExcelMaquette(classe_id);
@@ -142,45 +143,208 @@ const exporterMaquetteExcel = async (req, res) => {
 const exporterEmploiTempsPDF = async (req, res) => {
   try {
     const { id } = req.params;
+    const emploiTemps = await EmploiTemps.findByPk(id, { include: [{ model: Classe, as: 'classe' }] });
+    if (!emploiTemps) return res.status(404).json({ success: false, message: 'Introuvable' });
 
-    // Pour l'instant, retourner un message d'information
-    // L'implémentation complète du PDF nécessite une bibliothèque comme PDFKit ou Puppeteer
-    return res.status(501).json({
-      success: false,
-      message: 'Export PDF en cours de développement. Utilisez l\'export Excel pour le moment.'
+    if (req.user.role === 'RUP' && emploiTemps.classe.rup_id !== req.user.id) return res.status(403).json({ success: false, message: 'Refusé' });
+
+    const workbook = await genererExcelEmploiTemps(id);
+    const worksheet = workbook.getWorksheet(1);
+
+    const rows = [];
+    worksheet.eachRow((row, rowNumber) => {
+      if (rowNumber >= 3) {
+        const rowData = [];
+        row.eachCell({ includeEmpty: true }, (cell) => {
+          const color = cell.fill?.fgColor?.argb;
+          const text = cell.value?.toString() || "";
+          rowData.push(color ? { text, color } : text);
+        });
+        rows.push(rowData);
+      }
     });
 
-    // Implémenter l'export PDF avec PDFKit ou Puppeteer
+    const pdfBuffer = await genererPDFTable({
+      title: `Emploi du Temps - ${emploiTemps.classe.nom}`,
+      headers: rows[0].map(h => typeof h === 'object' ? h.text : h),
+      rows: rows.slice(1)
+    });
 
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="EDT_${id}.pdf"`);
+    res.send(pdfBuffer);
   } catch (error) {
-    console.error('[Exports] Erreur exporterEmploiTempsPDF:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Erreur lors de l\'export PDF',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 
 const exporterMaquettePDF = async (req, res) => {
   try {
     const { classe_id } = req.params;
+    const workbook = await genererExcelMaquette(classe_id);
+    const worksheet = workbook.getWorksheet(1);
 
-    // Pour l'instant, retourner un message d'information
-    return res.status(501).json({
-      success: false,
-      message: 'Export PDF en cours de développement. Utilisez l\'export Excel pour le moment.'
+    const rows = [];
+    worksheet.eachRow({ includeEmpty: true }, (row, rowNumber) => {
+      if (rowNumber >= 2) { // Maquette headers at row 2
+        const rowData = [];
+        row.eachCell({ includeEmpty: true }, (cell) => {
+          const color = cell.fill?.fgColor?.argb;
+          const text = cell.value?.toString() || "";
+          rowData.push(color ? { text, color } : text);
+        });
+        rows.push(rowData);
+      }
     });
 
-    // ici Implémenter l'export PDF
+    const pdfBuffer = await genererPDFTable({
+      title: `Maquette Pedagogique - ${classe_id}`,
+      headers: rows[0].map(h => typeof h === 'object' ? h.text : h),
+      rows: rows.slice(1)
+    });
 
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="Maquette_${classe_id}.pdf"`);
+    res.send(pdfBuffer);
   } catch (error) {
-    console.error('[Exports] Erreur exporterMaquettePDF:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Erreur lors de l\'export PDF',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+const exporterProfesseurExcel = async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (req.user.role === 'RUP') {
+      const teachesInRupClass = await Attribution.findOne({
+        where: { professeur_id: id },
+        include: [{ model: Classe, as: 'classe', where: { rup_id: req.user.id } }]
+      });
+      if (!teachesInRupClass) return res.status(403).json({ success: false, message: "Ce professeur n'intervient pas dans vos classes." });
+    } else if (req.user.role === 'PROFESSEUR') {
+      const prof = await Professeur.findOne({ where: { user_id: req.user.id } });
+      if (!prof || prof.id !== parseInt(id)) return res.status(403).json({ success: false, message: "Accès refusé." });
+    }
+
+    const workbook = await genererExcelProfesseur(id);
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="EDT_Prof_${id}.xlsx"`);
+    await workbook.xlsx.write(res);
+    res.end();
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+const exporterProfesseurPDF = async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (req.user.role === 'RUP') {
+      const teachesInRupClass = await Attribution.findOne({
+        where: { professeur_id: id },
+        include: [{ model: Classe, as: 'classe', where: { rup_id: req.user.id } }]
+      });
+      if (!teachesInRupClass) return res.status(403).json({ success: false, message: "Ce professeur n'intervient pas dans vos classes." });
+    } else if (req.user.role === 'PROFESSEUR') {
+      const prof = await Professeur.findOne({ where: { user_id: req.user.id } });
+      if (!prof || prof.id !== parseInt(id)) return res.status(403).json({ success: false, message: "Accès refusé. Vous ne pouvez exporter que votre propre emploi du temps." });
+    }
+    const workbook = await genererExcelProfesseur(id);
+    const worksheet = workbook.getWorksheet(1);
+    const rows = [];
+    worksheet.eachRow((row, rowNumber) => {
+      if (rowNumber >= 3) {
+        const rowData = [];
+        row.eachCell({ includeEmpty: true }, (cell) => {
+          const color = cell.fill?.fgColor?.argb;
+          const text = cell.value?.toString() || "";
+          rowData.push(color ? { text, color } : text);
+        });
+        rows.push(rowData);
+      }
     });
+
+    const pdfBuffer = await genererPDFTable({
+      title: `Emploi du Temps Professeur`,
+      headers: rows[0].map(h => typeof h === 'object' ? h.text : h),
+      rows: rows.slice(1)
+    });
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="EDT_Prof_${id}.pdf"`);
+    res.send(pdfBuffer);
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+const exporterProfesseursBatchExcel = async (req, res) => {
+  try {
+    const classes = await Classe.findAll({ where: { rup_id: req.user.id } });
+    const classIds = classes.map(c => c.id);
+    const attributions = await Attribution.findAll({
+      where: { classe_id: classIds },
+      attributes: ['professeur_id']
+    });
+    const profIds = [...new Set(attributions.map(a => a.professeur_id))];
+
+    // On passe les IDs à genererExcelProfesseursBatch, qui doit gérer des objets {id} ou juste des IDs
+    // Modifions genererExcelProfesseursBatch pour accepter une liste d'IDs
+    const workbook = await genererExcelProfesseursBatch(profIds.map(id => ({ id })));
+
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="EDT_Profs_Global.xlsx"`);
+    await workbook.xlsx.write(res);
+    res.end();
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+const exporterProfesseursBatchPDF = async (req, res) => {
+  try {
+    const classes = await Classe.findAll({ where: { rup_id: req.user.id } });
+    const classIds = classes.map(c => c.id);
+    const attributions = await Attribution.findAll({
+      where: { classe_id: classIds },
+      attributes: ['professeur_id']
+    });
+    const profIds = [...new Set(attributions.map(a => a.professeur_id))];
+
+    const pdfItems = [];
+    for (const profId of profIds) {
+      const workbook = await genererExcelProfesseur(profId);
+      const worksheet = workbook.getWorksheet(1);
+      const rows = [];
+      worksheet.eachRow((row, rowNumber) => {
+        if (rowNumber >= 3) {
+          const rowData = [];
+          row.eachCell({ includeEmpty: true }, (cell) => {
+            const color = cell.fill?.fgColor?.argb;
+            const text = cell.value?.toString() || "";
+            rowData.push(color ? { text, color } : text);
+          });
+          rows.push(rowData);
+        }
+      });
+      if (rows.length > 1) {
+        pdfItems.push({
+          title: `Emploi du Temps Professeur - ID: ${profId}`,
+          headers: rows[0].map(h => typeof h === 'object' ? h.text : h),
+          rows: rows.slice(1)
+        });
+      }
+    }
+
+    if (pdfItems.length === 0) {
+      return res.status(404).json({ success: false, message: "Aucun emploi du temps trouvé pour vos professeurs." });
+    }
+
+    const pdfBuffer = await genererPDFTableBatch(pdfItems);
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="EDT_Profs_Global.pdf"`);
+    res.send(pdfBuffer);
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 
@@ -188,5 +352,9 @@ module.exports = {
   exporterEmploiTempsExcel,
   exporterMaquetteExcel,
   exporterEmploiTempsPDF,
-  exporterMaquettePDF
+  exporterMaquettePDF,
+  exporterProfesseurExcel,
+  exporterProfesseurPDF,
+  exporterProfesseursBatchExcel,
+  exporterProfesseursBatchPDF
 };
