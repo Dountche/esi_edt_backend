@@ -22,7 +22,7 @@ module.exports = {
       {
         nom: 'Koné',
         prenom: 'Jean',
-        email: 'jean.kone@esi.ci',
+        email: 'jean.kone@inphb.ci',
         mot_de_passe: hashedPassword,
         telephone: '+225 07 01 02 03 04',
         role_id: rupRoleId,
@@ -33,7 +33,7 @@ module.exports = {
       {
         nom: 'Diabaté',
         prenom: 'Aminata',
-        email: 'aminata.diabate@esi.ci',
+        email: 'aminata.diabate@inphb.ci',
         mot_de_passe: hashedPassword,
         telephone: '+225 07 11 12 13 14',
         role_id: rupRoleId,
@@ -46,7 +46,7 @@ module.exports = {
       {
         nom: 'Yao',
         prenom: 'Kouadio',
-        email: 'kouadio.yao@esi.ci',
+        email: 'kouadio.yao@inphb.ci',
         mot_de_passe: hashedPassword,
         telephone: '+225 07 21 22 23 24',
         role_id: profRoleId,
@@ -57,7 +57,7 @@ module.exports = {
       {
         nom: 'Kouassi',
         prenom: 'Marie',
-        email: 'marie.kouassi@esi.ci',
+        email: 'marie.kouassi@inphb.ci',
         mot_de_passe: hashedPassword,
         telephone: '+225 07 31 32 33 34',
         role_id: profRoleId,
@@ -68,7 +68,7 @@ module.exports = {
       {
         nom: 'Bamba',
         prenom: 'Seydou',
-        email: 'seydou.bamba@esi.ci',
+        email: 'seydou.bamba@inphb.ci',
         mot_de_passe: hashedPassword,
         telephone: '+225 07 41 42 43 44',
         role_id: profRoleId,
@@ -81,7 +81,7 @@ module.exports = {
       {
         nom: 'Traoré',
         prenom: 'Fatou',
-        email: 'fatou.traore@esi.ci',
+        email: 'fatou.traore@inphb.ci',
         mot_de_passe: hashedPassword,
         telephone: '+225 07 51 52 53 54',
         role_id: etudiantRoleId,
@@ -92,7 +92,7 @@ module.exports = {
       {
         nom: 'Ouattara',
         prenom: 'Ibrahim',
-        email: 'ibrahim.ouattara@esi.ci',
+        email: 'ibrahim.ouattara@inphb.ci',
         mot_de_passe: hashedPassword,
         telephone: '+225 07 61 62 63 64',
         role_id: etudiantRoleId,
@@ -103,7 +103,7 @@ module.exports = {
       {
         nom: 'N\'Guessan',
         prenom: 'Aïcha',
-        email: 'aicha.nguessan@esi.ci',
+        email: 'aicha.nguessan@inphb.ci',
         mot_de_passe: hashedPassword,
         telephone: '+225 07 71 72 73 74',
         role_id: etudiantRoleId,
@@ -114,7 +114,7 @@ module.exports = {
       {
         nom: 'Coulibaly',
         prenom: 'Mamadou',
-        email: 'mamadou.coulibaly@esi.ci',
+        email: 'mamadou.coulibaly@inphb.ci',
         mot_de_passe: hashedPassword,
         telephone: '+225 07 81 82 83 84',
         role_id: etudiantRoleId,
@@ -125,7 +125,7 @@ module.exports = {
       {
         nom: 'Soro',
         prenom: 'Awa',
-        email: 'awa.soro@esi.ci',
+        email: 'awa.soro@inphb.ci',
         mot_de_passe: hashedPassword,
         telephone: '+225 07 91 92 93 94',
         role_id: etudiantRoleId,
