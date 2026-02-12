@@ -233,7 +233,14 @@ const getEmploiTempsById = async (req, res) => {
             {
               model: Matiere,
               as: 'matiere',
-              attributes: ['id', 'nom', 'code']
+              attributes: ['id', 'nom', 'code'],
+              include: [
+                {
+                  model: require('../models').DFR,
+                  as: 'dfr',
+                  attributes: ['id', 'nom', 'couleur']
+                }
+              ]
             },
             {
               model: Professeur,
@@ -385,7 +392,14 @@ const getEmploiTempsByClasse = async (req, res) => {
             {
               model: Matiere,
               as: 'matiere',
-              attributes: ['id', 'nom', 'code']
+              attributes: ['id', 'nom', 'code'],
+              include: [
+                {
+                  model: require('../models').DFR,
+                  as: 'dfr',
+                  attributes: ['id', 'nom', 'couleur']
+                }
+              ]
             },
             {
               model: Professeur,
@@ -649,7 +663,6 @@ const dupliquerEmploiTemps = async (req, res) => {
       professeur_id: creneau.professeur_id,
       salle_id: creneau.salle_id,
       semaine_numero: creneau.semaine_numero,
-      type_cours: creneau.type_cours,
       annule: false
     }));
 

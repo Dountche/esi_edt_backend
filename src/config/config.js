@@ -2,13 +2,21 @@ require('dotenv').config();
 
 const { DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME, DATABASE_URL, NODE_ENV } = process.env;
 
-const common = {
+const baseCommon = {
   dialect: 'postgres',
-  // dialectOptions: {
-  //    ssl: { require: true, rejectUnauthorized: false } //prod
-  // },
   logging: false
 };
+
+const sslCommon = {
+  ...baseCommon,
+  dialectOptions: {
+    ssl: { require: true, rejectUnauthorized: false }
+  }
+};
+
+const needSSL = Boolean(DATABASE_URL) || NODE_ENV === 'production';
+
+const common = needSSL ? sslCommon : baseCommon;
 
 module.exports = {
   development: DATABASE_URL ? {

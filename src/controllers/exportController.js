@@ -214,15 +214,20 @@ const exporterMaquettePDF = async (req, res) => {
 const exporterProfesseurExcel = async (req, res) => {
   try {
     const { id } = req.params;
-    if (req.user.role === 'RUP') {
+
+    // Vérifier si c'est le professeur lui-même (valable pour PROFESSEUR et RUP)
+    const requestingProf = await Professeur.findOne({ where: { user_id: req.user.id } });
+    const isSelfExport = requestingProf && requestingProf.id === parseInt(id);
+
+    if (req.user.role === 'RUP' && !isSelfExport) {
+      // Si ce n'est pas son propre emploi du temps, vérifier qu'il a le droit (prof enseignant dans sa classe)
       const teachesInRupClass = await Attribution.findOne({
         where: { professeur_id: id },
         include: [{ model: Classe, as: 'classe', where: { rup_id: req.user.id } }]
       });
       if (!teachesInRupClass) return res.status(403).json({ success: false, message: "Ce professeur n'intervient pas dans vos classes." });
-    } else if (req.user.role === 'PROFESSEUR') {
-      const prof = await Professeur.findOne({ where: { user_id: req.user.id } });
-      if (!prof || prof.id !== parseInt(id)) return res.status(403).json({ success: false, message: "Accès refusé." });
+    } else if (req.user.role === 'PROFESSEUR' && !isSelfExport) {
+      return res.status(403).json({ success: false, message: "Accès refusé. Vous ne pouvez exporter que votre propre emploi du temps." });
     }
 
     const workbook = await genererExcelProfesseur(id);
@@ -238,15 +243,19 @@ const exporterProfesseurExcel = async (req, res) => {
 const exporterProfesseurPDF = async (req, res) => {
   try {
     const { id } = req.params;
-    if (req.user.role === 'RUP') {
+
+    // Vérifier si c'est le professeur lui-même (valable pour PROFESSEUR et RUP)
+    const requestingProf = await Professeur.findOne({ where: { user_id: req.user.id } });
+    const isSelfExport = requestingProf && requestingProf.id === parseInt(id);
+
+    if (req.user.role === 'RUP' && !isSelfExport) {
       const teachesInRupClass = await Attribution.findOne({
         where: { professeur_id: id },
         include: [{ model: Classe, as: 'classe', where: { rup_id: req.user.id } }]
       });
       if (!teachesInRupClass) return res.status(403).json({ success: false, message: "Ce professeur n'intervient pas dans vos classes." });
-    } else if (req.user.role === 'PROFESSEUR') {
-      const prof = await Professeur.findOne({ where: { user_id: req.user.id } });
-      if (!prof || prof.id !== parseInt(id)) return res.status(403).json({ success: false, message: "Accès refusé. Vous ne pouvez exporter que votre propre emploi du temps." });
+    } else if (req.user.role === 'PROFESSEUR' && !isSelfExport) {
+      return res.status(403).json({ success: false, message: "Accès refusé. Vous ne pouvez exporter que votre propre emploi du temps." });
     }
     const workbook = await genererExcelProfesseur(id);
     const worksheet = workbook.getWorksheet(1);

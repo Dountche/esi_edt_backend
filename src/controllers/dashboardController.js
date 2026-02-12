@@ -106,9 +106,17 @@ const getDashboardProfesseur = async (req, res) => {
     });
 
     if (!professeur) {
-      return res.status(404).json({
-        success: false,
-        message: 'Profil professeur introuvable'
+      // Retourner des stats vides au lieu d'une erreur
+      // Cela permet aux RUPs sans enregistrement professeur de voir leur dashboard
+      return res.status(200).json({
+        success: true,
+        data: {
+          nombre_classes: 0,
+          nombre_matieres: 0,
+          volume_horaire_total: 0,
+          prochains_cours: [],
+          semestre_actif: null
+        }
       });
     }
 
@@ -158,7 +166,7 @@ const getDashboardProfesseur = async (req, res) => {
     const nombreMatieres = attributions.length;
 
     // Volume horaire total
-    const volumeHoraireTotal = attributions.reduce((total, attr) => 
+    const volumeHoraireTotal = attributions.reduce((total, attr) =>
       total + (parseInt(attr.matiere.volume_horaire) || 0), 0
     );
 
@@ -207,7 +215,7 @@ const getDashboardProfesseur = async (req, res) => {
 
     // Si pas de cours aujourd'hui, chercher le prochain jour
     let prochainsCours = prochainsCoursAujourdhui;
-    
+
     if (prochainsCours.length === 0) {
       const joursOrdonnes = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
       const indexJourActuel = joursOrdonnes.indexOf(jourActuel);
@@ -267,8 +275,7 @@ const getDashboardProfesseur = async (req, res) => {
           heure_fin: c.heure_fin,
           matiere: c.matiere.nom,
           classe: c.emploi_temps.classe.nom,
-          salle: c.salle.nom,
-          type_cours: c.type_cours
+          salle: c.salle.nom
         })),
         semestre_actif: {
           id: semestreActif.id,
@@ -336,7 +343,7 @@ const getDashboardEtudiant = async (req, res) => {
       attributes: ['volume_horaire_total']
     });
 
-    const volumeHoraireTotal = ues.reduce((total, ue) => 
+    const volumeHoraireTotal = ues.reduce((total, ue) =>
       total + (parseInt(ue.volume_horaire_total) || 0), 0
     );
 

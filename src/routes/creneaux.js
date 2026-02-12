@@ -7,6 +7,9 @@ const { rupMiddleware } = require('../middlewares/roleMiddleware');
 // Toutes les routes nécessitent l'authentification
 router.use(authMiddleware);
 
+// Routes accessibles à tous les utilisateurs authentifiés (pour consultation)
+router.get('/', authMiddleware, creneauController.getAllCreneaux);
+
 // Routes protégées (RUP uniquement)
 router.post('/', rupMiddleware, creneauController.createCreneau);
 router.get('/verifier-disponibilite', rupMiddleware, creneauController.verifierDisponibiliteCreneau);

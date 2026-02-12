@@ -13,6 +13,7 @@ router.get('/:id', rupOuProfesseurMiddleware, attributionController.getAttributi
 
 // Routes protégées (RUP uniquement)
 router.post('/', rupMiddleware, attributionController.createAttribution);
+router.put('/:id', rupMiddleware, attributionController.updateAttribution);
 router.delete('/:id', rupMiddleware, attributionController.deleteAttribution);
 
 module.exports = router;

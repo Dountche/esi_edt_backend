@@ -407,9 +407,136 @@ const deleteAttribution = async (req, res) => {
   }
 };
 
+const updateAttribution = async (req, res) => {
+  const schema = Joi.object({
+    professeur_id: Joi.number().integer().optional(),
+    matiere_id: Joi.number().integer().optional(),
+    classe_id: Joi.number().integer().optional(),
+    semestre_id: Joi.number().integer().optional()
+  });
+
+  const { error, value } = schema.validate(req.body);
+  if (error) {
+    return res.status(400).json({
+      success: false,
+      message: error.details[0].message
+    });
+  }
+
+  const transaction = await sequelize.transaction();
+
+  try {
+    const { id } = req.params;
+    const { professeur_id, matiere_id, classe_id, semestre_id } = value;
+
+    const attribution = await Attribution.findByPk(id, { transaction });
+
+    if (!attribution) {
+      await transaction.rollback();
+      return res.status(404).json({
+        success: false,
+        message: 'Attribution introuvable'
+      });
+    }
+
+    // Vérifier les permissions
+    // On doit charger la classe pour vérifier le RUP
+    const classeToCheck = await Classe.findByPk(attribution.classe_id, { transaction });
+    if (req.user.role === 'RUP' && classeToCheck.rup_id !== req.user.id) {
+      await transaction.rollback();
+      return res.status(403).json({
+        success: false,
+        message: 'Accès refusé.'
+      });
+    }
+
+    // Si on change la classe, vérifier que le RUP a les droits sur la nouvelle classe aussi
+    if (classe_id && classe_id !== attribution.classe_id) {
+      const newClasse = await Classe.findByPk(classe_id, { transaction });
+      if (!newClasse) {
+        await transaction.rollback();
+        return res.status(404).json({ success: false, message: 'Nouvelle classe introuvable' });
+      }
+      if (req.user.role === 'RUP' && newClasse.rup_id !== req.user.id) {
+        await transaction.rollback();
+        return res.status(403).json({ success: false, message: 'Accès refusé pour la nouvelle classe.' });
+      }
+    }
+
+    // Préparer les nouvelles valeurs
+    const newProfId = professeur_id || attribution.professeur_id;
+    const newMatiereId = matiere_id || attribution.matiere_id;
+    const newClasseId = classe_id || attribution.classe_id;
+    const newSemestreId = semestre_id || attribution.semestre_id;
+
+    // Si changement de matière/classe, vérifier l'appartenance
+    if (matiere_id || classe_id) {
+      const verificationMatiere = await verifierMatiereAppartientClasse(newMatiereId, newClasseId, transaction);
+      if (!verificationMatiere.valide) {
+        await transaction.rollback();
+        return res.status(400).json({
+          success: false,
+          message: verificationMatiere.message
+        });
+      }
+    }
+
+    // Vérifier unicité (si changement de clés)
+    if (professeur_id || matiere_id || classe_id || semestre_id) {
+      const exists = await Attribution.findOne({
+        where: {
+          professeur_id: newProfId,
+          matiere_id: newMatiereId,
+          classe_id: newClasseId,
+          semestre_id: newSemestreId,
+          id: { [require('sequelize').Op.ne]: id } // Exclure soi-même
+        },
+        transaction
+      });
+
+      if (exists) {
+        await transaction.rollback();
+        return res.status(400).json({
+          success: false,
+          message: 'Une attribution identique existe déjà'
+        });
+      }
+    }
+
+    await attribution.update(value, { transaction });
+    await transaction.commit();
+
+    // Recharger avec relations
+    const updatedAttribution = await Attribution.findByPk(id, {
+      include: [
+        { model: Professeur, as: 'professeur', include: [{ model: User, as: 'user', attributes: ['id', 'nom', 'prenom'] }] },
+        { model: Matiere, as: 'matiere', attributes: ['id', 'nom', 'code'] },
+        { model: Classe, as: 'classe', attributes: ['id', 'nom'] },
+        { model: Semestre, as: 'semestre', attributes: ['id', 'nom'] }
+      ]
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: 'Attribution modifiée avec succès',
+      data: { attribution: updatedAttribution }
+    });
+
+  } catch (error) {
+    await transaction.rollback();
+    console.error('[Attributions] Erreur updateAttribution:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Erreur lors de la modification de l\'attribution',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+};
+
 module.exports = {
   createAttribution,
   getAllAttributions,
   getAttributionById,
-  deleteAttribution
+  deleteAttribution,
+  updateAttribution
 };

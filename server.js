@@ -4,7 +4,6 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const { Server } = require('socket.io');
-const { OpenRedistConnection, closeRedisConnection } = require('./src/config/redis');
 
 
 const app = require("./src/routes/app");
@@ -44,9 +43,6 @@ io.on('connection', (socket) => {
 // === Démarrage serveur ===
 (async () => {
   try {
-    console.log('Connexion Redis...');
-    await OpenRedistConnection();
-    console.log('Redis connecté');
 
     server.listen(PORT, '0.0.0.0', () => {
       console.log(`Serveur lancé sur http://localhost:${PORT}`);
@@ -55,13 +51,6 @@ io.on('connection', (socket) => {
 
     process.on('SIGINT', async () => {
       console.log('Arrêt du serveur...');
-      try {
-        await closeRedisConnection();
-        process.exit(0);
-      } catch (err) {
-        console.error('Erreur fermeture Redis :', err);
-        process.exit(1);
-      }
     });
 
   } catch (err) {

@@ -89,10 +89,6 @@ module.exports = (sequelize, DataTypes) => {
         max: 16
       }
     },
-    type_cours: {
-      type: DataTypes.ENUM('CM', 'TD', 'TP'),
-      allowNull: false
-    },
     annule: {
       type: DataTypes.BOOLEAN,
       allowNull: false,

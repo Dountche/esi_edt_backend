@@ -18,8 +18,7 @@ const createCreneau = async (req, res) => {
     matiere_id: Joi.number().integer().required(),
     professeur_id: Joi.number().integer().required(),
     salle_id: Joi.number().integer().required(),
-    semaine_numero: Joi.number().integer().min(1).max(16).required(),
-    type_cours: Joi.string().valid('CM', 'TD', 'TP').required()
+    semaine_numero: Joi.number().integer().min(1).max(16).required()
   });
 
   const { error, value } = schema.validate(req.body);
@@ -33,7 +32,7 @@ const createCreneau = async (req, res) => {
   const transaction = await sequelize.transaction();
 
   try {
-    const { emploi_temps_id, jour_semaine, heure_debut, heure_fin, matiere_id, professeur_id, salle_id, semaine_numero, type_cours } = value;
+    const { emploi_temps_id, jour_semaine, heure_debut, heure_fin, matiere_id, professeur_id, salle_id, semaine_numero } = value;
 
     // Vérifier que l'emploi du temps existe
     const emploiTemps = await EmploiTemps.findByPk(emploi_temps_id, {
@@ -146,7 +145,6 @@ const createCreneau = async (req, res) => {
       professeur_id,
       salle_id,
       semaine_numero,
-      type_cours,
       annule: false
     }, { transaction });
 
@@ -245,7 +243,6 @@ const updateCreneau = async (req, res) => {
     professeur_id: Joi.number().integer().optional(),
     salle_id: Joi.number().integer().optional(),
     semaine_numero: Joi.number().integer().min(1).max(16).optional(),
-    type_cours: Joi.string().valid('CM', 'TD', 'TP').optional(),
     annule: Joi.boolean().optional()
   });
 
@@ -431,8 +428,6 @@ const deleteCreneau = async (req, res) => {
 
     await creneau.destroy();
 
-    console.log(`[Creneaux] Créneau supprimé - ID: ${id}`);
-
     return res.status(200).json({
       success: true,
       message: 'Créneau supprimé avec succès'
@@ -448,9 +443,74 @@ const deleteCreneau = async (req, res) => {
   }
 };
 
+const getAllCreneaux = async (req, res) => {
+  try {
+    const { professeur_id, salle_id, classe_id, date_debut, date_fin } = req.query;
+    const where = { annule: false };
+
+    if (professeur_id) where.professeur_id = professeur_id;
+    if (salle_id) where.salle_id = salle_id;
+
+    // Filtre par classe implique une jointure, géré via include
+    const include = [
+      {
+        model: Matiere,
+        as: 'matiere',
+        attributes: ['id', 'nom', 'code'],
+        include: [
+          {
+            model: require('../models').DFR,
+            as: 'dfr',
+            attributes: ['id', 'nom', 'couleur']
+          }
+        ]
+      },
+      { model: Professeur, as: 'professeur', include: [{ model: User, as: 'user', attributes: ['id', 'nom', 'prenom'] }] },
+      { model: Salle, as: 'salle', attributes: ['id', 'nom'] },
+      {
+        model: EmploiTemps,
+        as: 'emploi_temps',
+        include: [{ model: Classe, as: 'classe', attributes: ['id', 'nom'] }],
+        where: classe_id ? { classe_id } : undefined
+      }
+    ];
+
+    const creneaux = await Creneau.findAll({
+      where,
+      include,
+      order: [['semaine_numero', 'ASC'], ['jour_semaine', 'ASC'], ['heure_debut', 'ASC']]
+    });
+
+    // Transformer pour inclure la couleur du DFR si disponible
+    const creneauxWithColor = creneaux.map(c => {
+      const cJson = c.toJSON();
+      // Couleur par défaut ou celle du DFR
+      let color = '#3B82F6';
+      if (c.matiere?.dfr?.couleur) {
+        color = c.matiere.dfr.couleur;
+      }
+      return { ...cJson, color };
+    });
+
+    return res.status(200).json({
+      success: true,
+      data: { creneaux: creneauxWithColor }
+    });
+
+  } catch (error) {
+    console.error('[Creneaux] Erreur getAllCreneaux:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Erreur lors de la récupération des créneaux',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+};
+
 module.exports = {
   createCreneau,
   verifierDisponibiliteCreneau,
   updateCreneau,
-  deleteCreneau
+  deleteCreneau,
+  getAllCreneaux
 };

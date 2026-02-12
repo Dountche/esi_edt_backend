@@ -78,11 +78,6 @@ module.exports = {
           max: 16
         }
       },
-      type_cours: {
-        type: Sequelize.ENUM('CM', 'TD', 'TP'),
-        allowNull: false,
-        comment: 'Type de cours (CM: Cours Magistral, TD: Travaux Dirigés, TP: Travaux Pratiques)'
-      },
       annule: {
         type: Sequelize.BOOLEAN,
         allowNull: false,

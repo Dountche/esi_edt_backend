@@ -86,16 +86,18 @@ const verifierDisponibilite = async (
     };
   }
 
-  if (!estCreneauAutorise(heure_debut, heure_fin)) {
-    return {
-      disponible: false,
-      conflits: [{
-        type: 'creneau_non_autorise',
-        message: 'Créneau non autorisé',
-        creneaux_autorises: CRENEAUX_AUTORISES
-      }]
-    };
-  }
+  /*
+    if (!estCreneauAutorise(heure_debut, heure_fin)) {
+      return {
+        disponible: false,
+        conflits: [{
+          type: 'creneau_non_autorise',
+          message: 'Créneau non autorisé',
+          creneaux_autorises: CRENEAUX_AUTORISES
+        }]
+      };
+    }
+  */
 
   //verifier les incompatibilités 4h15 vs 2h + 2h
   const groupe = trouverGroupeIncompatible(heure_debut, heure_fin);

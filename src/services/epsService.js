@@ -53,7 +53,6 @@ const syncEpsCreneaux = async (emploiTempsId, transaction = null) => {
                 professeur_id: null,
                 salle_id: null,
                 semaine_numero: semaine,
-                type_cours: 'TP',
                 annule: false
             });
         }

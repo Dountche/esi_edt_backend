@@ -12,7 +12,7 @@ const register = async (req, res) => {
     mot_de_passe: Joi.string().min(8).required(),
     telephone: Joi.string().optional(),
     role: Joi.string().valid('RUP', 'PROFESSEUR', 'ETUDIANT').required(),
-    
+
     // Champs spécifiques selon le rôle
     // Pour PROFESSEUR
     grade: Joi.string().when('role', {
@@ -25,7 +25,7 @@ const register = async (req, res) => {
       then: Joi.optional(),
       otherwise: Joi.forbidden()
     }),
-    
+
     // Pour ETUDIANT
     matricule: Joi.string().when('role', {
       is: 'ETUDIANT',
@@ -95,7 +95,8 @@ const register = async (req, res) => {
     });
 
     // Créer l'extension selon le rôle
-    if (role === 'PROFESSEUR') {
+    // Un RUP est aussi un Professeur (pour pouvoir enseigner)
+    if (role === 'PROFESSEUR' || role === 'RUP') {
       await Professeur.create({
         user_id: user.id,
         grade: grade || null,
@@ -160,6 +161,7 @@ const login = async (req, res) => {
     const { email, mot_de_passe } = value;
 
     // Récupérer l'utilisateur avec son rôle (besoin du mot de passe)
+    // Récupérer l'utilisateur avec son rôle et profils associés (besoin du mot de passe)
     const user = await User.scope('withPassword').findOne({
       where: { email },
       include: [
@@ -167,6 +169,23 @@ const login = async (req, res) => {
           model: Role,
           as: 'role',
           attributes: ['id', 'nom']
+        },
+        {
+          model: Professeur,
+          as: 'professeur',
+          attributes: ['id', 'grade', 'specialite']
+        },
+        {
+          model: Etudiant,
+          as: 'etudiant',
+          attributes: ['id', 'matricule', 'classe_id'],
+          include: [
+            {
+              model: require('../models').Classe,
+              as: 'classe',
+              attributes: ['id', 'nom', 'annee_scolaire']
+            }
+          ]
         }
       ]
     });
