@@ -1,5 +1,6 @@
 const Joi = require('joi');
 const { Classe, Specialite, Salle, Filiere, Cycle, User, Etudiant, UniteEnseignement } = require('../models');
+const { get } = require('../routes/classes');
 
 
 const createClasse = async (req, res) => {
@@ -286,7 +287,71 @@ const getClasseById = async (req, res) => {
     });
   }
 };
+//methode public pour inscription des etudiants sans authentification
+const getAllClassesPublic = async (req, res) => {
+  try {
+    const { specialite_id, annee_scolaire } = req.query;
 
+    // Construire les conditions de filtrage
+    const where = {};
+    
+    if (specialite_id) where.specialite_id = specialite_id;
+    if (annee_scolaire) where.annee_scolaire = annee_scolaire;
+
+    const classes = await Classe.findAll({
+      where,
+      include: [
+        {
+          model: Specialite,
+          as: 'specialite',
+          include: [
+            { model: Filiere, as: 'filiere', attributes: ['id', 'nom'] },
+            { model: Cycle, as: 'cycle', attributes: ['id', 'nom'] }
+          ]
+        },
+        {
+          model: Salle,
+          as: 'salle_principale',
+          attributes: ['id', 'nom']
+        },
+        {
+          model: Etudiant,
+          as: 'etudiants',
+          attributes: ['id'] 
+        }
+      ],
+      order: [['annee_scolaire', 'DESC'], ['nom', 'ASC']]
+    });
+
+    const classesWithCount = classes.map(classe => {
+      const classeJSON = classe.toJSON();
+      return {
+        id: classeJSON.id,
+        nom: classeJSON.nom,
+        annee_scolaire: classeJSON.annee_scolaire,
+        specialite: classeJSON.specialite,
+        salle_principale: classeJSON.salle_principale,
+        nombre_etudiants: classeJSON.etudiants ? classeJSON.etudiants.length : 0
+      };
+    });
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        classes: classesWithCount,
+        total: classes.length
+      }
+    });
+
+  } catch (error) {
+    console.error('[Classes] Erreur getAllClassesPublic:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Erreur lors de la récupération des classes',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+};
 
 const updateClasse = async (req, res) => {
   const schema = Joi.object({
@@ -495,6 +560,7 @@ const deleteClasse = async (req, res) => {
 module.exports = {
   createClasse,
   getAllClasses,
+  getAllClassesPublic,
   getClasseById,
   updateClasse,
   deleteClasse

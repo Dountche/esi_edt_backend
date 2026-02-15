@@ -5,12 +5,13 @@ const authMiddleware = require('../middlewares/authMiddleware');
 const { rupMiddleware } = require('../middlewares/roleMiddleware');
 
 // exception pour cette route
-router.get('/', classeController.getAllClasses);
+router.get('/public', classeController.getAllClassesPublic);
 
 // Toutes autres les routes nécessitent l'authentification
 router.use(authMiddleware);
 
 // Routes accessibles à tous les utilisateurs authentifiés
+router.get('/', classeController.getAllClasses);
 router.get('/:id', classeController.getClasseById);
 
 // Routes protégées (RUP uniquement)
